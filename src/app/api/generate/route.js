@@ -23,17 +23,26 @@ export async function POST(req) {
 
       const prompt = `この医学教科書・ノートの画像に書かれているテキストをすべて正確に読み取ってください。${markNote}テキストのみを出力してください。`;
 
-      const res = await fetch(GEMINI_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [
-            { inline_data: { mime_type: mimeType || "image/jpeg", data: imageBase64 } },
-            { text: prompt }
-          ]}],
-          generationConfig: { temperature: 0.1, maxOutputTokens: 2048 }
-        })
-      });
+      let res;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        res = await fetch(GEMINI_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [
+              { inline_data: { mime_type: mimeType || "image/jpeg", data: imageBase64 } },
+              { text: prompt }
+            ]}],
+            generationConfig: { temperature: 0.1, maxOutputTokens: 2048 }
+          })
+        });
+        if (res.status === 429) {
+          // レート制限：5秒待ってリトライ
+          await new Promise(r => setTimeout(r, 5000));
+          continue;
+        }
+        break;
+      }
 
       if (!res.ok) {
         const err = await res.text();

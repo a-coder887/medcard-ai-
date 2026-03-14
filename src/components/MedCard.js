@@ -115,6 +115,11 @@ export default function MedCard() {
         addLog(`画像 ${i + 1} 完了 — ${data.text?.length ?? 0}文字`, "ok");
         texts.push(data.text || "");
         setDoneSet(p => new Set([...p, i]));
+
+        // レート制限対策：画像が複数ある場合は次の送信まで1.5秒待機
+        if (i < images.length - 1) {
+          await new Promise(r => setTimeout(r, 1500));
+        }
       }
 
       setProgress(80);
